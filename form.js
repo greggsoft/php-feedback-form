@@ -219,7 +219,9 @@ messageInput.addEventListener("input", () => {
 function formatPhone(value) {
   let digits = value.replace(/\D/g, "");
 
-  if (digits.length > 10 && (digits.startsWith("7") || digits.startsWith("8"))) {
+  if (value.trim().startsWith("+7")) {
+    digits = digits.slice(1);
+  } else if (digits.length > 10 && (digits.startsWith("7") || digits.startsWith("8"))) {
     digits = digits.slice(1);
   }
 
