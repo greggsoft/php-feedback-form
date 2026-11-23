@@ -209,7 +209,10 @@ Object.entries(fields).forEach(([name, field]) => {
     ? "change"
     : "input";
 
-  field.addEventListener(eventName, () => setFieldError(name, ""));
+  field.addEventListener(eventName, () => {
+    setFieldError(name, "");
+    formError.textContent = "";
+  });
 });
 
 messageInput.addEventListener("input", () => {
