@@ -2,13 +2,6 @@
 
 declare(strict_types=1);
 
-session_set_cookie_params([
-    'httponly' => true,
-    'samesite' => 'Strict',
-    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
-]);
-session_start();
-
 header('X-Content-Type-Options: nosniff');
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -66,11 +59,11 @@ function processForm(): void
         'email' => cleanString($_POST['email'] ?? ''),
         'message' => cleanString($_POST['message'] ?? ''),
         'captcha' => strtoupper(cleanString($_POST['captcha'] ?? '')),
+        'captcha_token' => cleanString($_POST['captcha_token'] ?? ''),
         'consent' => $_POST['consent'] ?? '',
     ];
 
     $errors = validate($data);
-    unset($_SESSION['captcha_hash']);
 
     if ($errors !== []) {
         respond(422, [
@@ -180,14 +173,9 @@ function validate(array $data): array
         $errors['consent'] = 'Необходимо согласие на обработку данных.';
     }
 
-    $captchaHash = $_SESSION['captcha_hash'] ?? '';
     if ($data['captcha'] === '') {
         $errors['captcha'] = 'Введите код с картинки.';
-    } elseif (
-        !is_string($captchaHash)
-        || $captchaHash === ''
-        || !password_verify($data['captcha'], $captchaHash)
-    ) {
+    } elseif (!verifyCaptchaToken($data['captcha'], $data['captcha_token'])) {
         $errors['captcha'] = 'Код с картинки введён неверно.';
     }
 
@@ -196,14 +184,21 @@ function validate(array $data): array
 
 function sendCaptcha(): void
 {
+    $secret = captchaSecret();
+
+    if ($secret === '') {
+        respond(500, [
+            'success' => false,
+            'message' => 'Не настроен секрет captcha.',
+        ]);
+    }
+
     $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     $code = '';
 
     for ($index = 0; $index < 5; $index++) {
         $code .= $alphabet[random_int(0, strlen($alphabet) - 1)];
     }
-
-    $_SESSION['captcha_hash'] = password_hash($code, PASSWORD_DEFAULT);
 
     $characters = '';
     foreach (str_split($code) as $index => $character) {
@@ -233,7 +228,85 @@ SVG;
     respond(200, [
         'success' => true,
         'image' => 'data:image/svg+xml;base64,' . base64_encode($svg),
+        'token' => createCaptchaToken($code, $secret),
     ]);
+}
+
+function createCaptchaToken(string $code, string $secret): string
+{
+    $payload = [
+        'digest' => hash_hmac('sha256', $code, $secret),
+        'expires_at' => time() + 300,
+    ];
+    $encodedPayload = base64UrlEncode(json_encode($payload, JSON_THROW_ON_ERROR));
+    $signature = hash_hmac('sha256', $encodedPayload, $secret, true);
+
+    return $encodedPayload . '.' . base64UrlEncode($signature);
+}
+
+function verifyCaptchaToken(string $code, string $token): bool
+{
+    $secret = captchaSecret();
+    $parts = explode('.', $token, 2);
+
+    if ($secret === '' || count($parts) !== 2) {
+        return false;
+    }
+
+    [$encodedPayload, $encodedSignature] = $parts;
+    $signature = base64UrlDecode($encodedSignature);
+    $expectedSignature = hash_hmac('sha256', $encodedPayload, $secret, true);
+
+    if ($signature === null || !hash_equals($expectedSignature, $signature)) {
+        return false;
+    }
+
+    $payloadJson = base64UrlDecode($encodedPayload);
+    if ($payloadJson === null) {
+        return false;
+    }
+
+    try {
+        $payload = json_decode($payloadJson, true, 512, JSON_THROW_ON_ERROR);
+    } catch (JsonException) {
+        return false;
+    }
+
+    if (
+        !is_array($payload)
+        || !isset($payload['digest'], $payload['expires_at'])
+        || !is_string($payload['digest'])
+        || !is_int($payload['expires_at'])
+        || $payload['expires_at'] < time()
+    ) {
+        return false;
+    }
+
+    return hash_equals($payload['digest'], hash_hmac('sha256', $code, $secret));
+}
+
+function captchaSecret(): string
+{
+    $secret = getenv('CAPTCHA_SECRET');
+
+    return is_string($secret) ? trim($secret) : '';
+}
+
+function base64UrlEncode(string $value): string
+{
+    return rtrim(strtr(base64_encode($value), '+/', '-_'), '=');
+}
+
+function base64UrlDecode(string $value): ?string
+{
+    $padding = strlen($value) % 4;
+    if ($padding > 0) {
+        $value .= str_repeat('=', 4 - $padding);
+    }
+
+    $decoded = base64_decode(strtr($value, '-_', '+/'), true);
+
+    return $decoded === false ? null : $decoded;
 }
 
 function cleanString(mixed $value): string

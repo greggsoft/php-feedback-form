@@ -43,12 +43,14 @@ php -S localhost:8000
 
 - `CONTACT_EMAIL` — адрес, на который приходят сообщения;
 - `SENDER_EMAIL` — адрес отправителя в заголовке `From`.
+- `CAPTCHA_SECRET` — случайный секрет для подписи captcha-токенов; обязателен.
 
-Для обеих переменных по умолчанию используется `greggsoft@gmail.com`.
+Для первых двух переменных по умолчанию используется `greggsoft@gmail.com`.
 
 ```bash
 CONTACT_EMAIL=inbox@example.com \
 SENDER_EMAIL=sender@example.com \
+CAPTCHA_SECRET="$(openssl rand -hex 32)" \
 php -S localhost:8000
 ```
 

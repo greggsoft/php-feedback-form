@@ -4,6 +4,7 @@ const form = document.querySelector("#contact-form");
 const submitButton = document.querySelector("#submit-button");
 const captchaImage = document.querySelector("#captcha-image");
 const captchaRefresh = document.querySelector("#captcha-refresh");
+const captchaToken = document.querySelector("#captcha-token");
 const messageInput = document.querySelector("#message");
 const messageCounter = document.querySelector("#message-counter");
 const formError = document.querySelector("#form-error");
@@ -127,13 +128,15 @@ async function loadCaptcha() {
     });
     const result = await response.json();
 
-    if (!response.ok || !result.image) {
+    if (!response.ok || !result.image || !result.token) {
       throw new Error(result.message || "Не удалось загрузить captcha.");
     }
 
     captchaImage.src = result.image;
+    captchaToken.value = result.token;
     captchaImage.alt = "Код проверки";
   } catch (error) {
+    captchaToken.value = "";
     captchaImage.alt = "Код проверки недоступен";
     setFieldError("captcha", error.message);
   } finally {
