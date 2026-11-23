@@ -297,14 +297,6 @@ textarea:focus {
   display: inline-block;
 }
 
-.form-field--honeypot {
-  position: absolute;
-  left: -10000px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
 .result-dialog {
   width: min(calc(100% - 36px), 440px);
   padding: 32px;

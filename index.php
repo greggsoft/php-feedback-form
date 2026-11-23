@@ -33,7 +33,7 @@ if ($method !== 'POST') {
 
 processForm();
 
-function serveIndex(): never
+function serveIndex(): void
 {
     $indexPath = __DIR__ . '/index.html';
 
@@ -56,10 +56,10 @@ function jsonHeaders(): void
     header('Cache-Control: no-store');
 }
 
-function processForm(): never
+function processForm(): void
 {
     $data = [
-        'custom' => cleanString($_POST['custom'] ?? ''),
+        'action' => cleanString($_POST['action'] ?? ''),
         'subject' => cleanString($_POST['subject'] ?? ''),
         'full_name' => cleanString($_POST['full_name'] ?? ''),
         'phone' => cleanString($_POST['phone'] ?? ''),
@@ -67,15 +67,7 @@ function processForm(): never
         'message' => cleanString($_POST['message'] ?? ''),
         'captcha' => strtoupper(cleanString($_POST['captcha'] ?? '')),
         'consent' => $_POST['consent'] ?? '',
-        'website' => cleanString($_POST['website'] ?? ''),
     ];
-
-    if ($data['website'] !== '') {
-        respond(200, [
-            'success' => true,
-            'message' => 'Спасибо! Ваше сообщение принято.',
-        ]);
-    }
 
     $errors = validate($data);
     unset($_SESSION['captcha_hash']);
@@ -140,7 +132,7 @@ function validate(array $data): array
         'Другое',
     ];
 
-    if ($data['custom'] !== 'message') {
+    if ($data['action'] !== 'message') {
         $errors['subject'] = 'Некорректные данные формы.';
     }
 
@@ -180,8 +172,8 @@ function validate(array $data): array
 
     if ($data['message'] === '') {
         $errors['message'] = 'Введите сообщение.';
-    } elseif (textLength($data['message']) > 4000) {
-        $errors['message'] = 'Сообщение не должно превышать 4000 символов.';
+    } elseif (textLength($data['message']) > 4096) {
+        $errors['message'] = 'Сообщение не должно превышать 4096 символов.';
     }
 
     if ($data['consent'] !== '1') {
@@ -202,7 +194,7 @@ function validate(array $data): array
     return $errors;
 }
 
-function sendCaptcha(): never
+function sendCaptcha(): void
 {
     $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     $code = '';
@@ -272,7 +264,7 @@ function environmentEmail(string $name, string $fallback): string
 /**
  * @param array<string, mixed> $payload
  */
-function respond(int $status, array $payload): never
+function respond(int $status, array $payload): void
 {
     http_response_code($status);
     echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);

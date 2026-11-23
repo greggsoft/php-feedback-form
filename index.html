@@ -29,18 +29,7 @@
           method="post"
           novalidate
         >
-          <input type="hidden" name="custom" value="message">
-
-          <div class="form-field form-field--honeypot" aria-hidden="true">
-            <label for="website">Не заполняйте это поле</label>
-            <input
-              id="website"
-              name="website"
-              type="text"
-              tabindex="-1"
-              autocomplete="off"
-            >
-          </div>
+          <input type="hidden" name="action" value="message">
 
           <div class="form-field">
             <label for="subject">Тема обращения</label>
@@ -107,13 +96,13 @@
               id="message"
               name="message"
               rows="6"
-              maxlength="4000"
+              maxlength="4096"
               placeholder="Опишите ваш вопрос"
               required
             ></textarea>
             <div class="field-meta">
               <span class="field-error" id="message-error"></span>
-              <span id="message-counter">0 / 4000</span>
+              <span id="message-counter">0 / 4096</span>
             </div>
           </div>
 

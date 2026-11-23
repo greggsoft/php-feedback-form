@@ -96,8 +96,8 @@ function validateForm() {
 
   if (!values.message) {
     errors.message = "Введите сообщение.";
-  } else if (values.message.length > 4000) {
-    errors.message = "Сообщение не должно превышать 4000 символов.";
+  } else if (values.message.length > 4096) {
+    errors.message = "Сообщение не должно превышать 4096 символов.";
   }
 
   if (!values.captcha) {
@@ -192,7 +192,7 @@ form.addEventListener("submit", async (event) => {
     }
 
     form.reset();
-    messageCounter.textContent = "0 / 4000";
+    messageCounter.textContent = "0 / 4096";
     showResult(true, "Сообщение отправлено", result.message);
   } catch (error) {
     formError.textContent = error.message;
@@ -213,7 +213,45 @@ Object.entries(fields).forEach(([name, field]) => {
 });
 
 messageInput.addEventListener("input", () => {
-  messageCounter.textContent = `${messageInput.value.length} / 4000`;
+  messageCounter.textContent = `${messageInput.value.length} / 4096`;
+});
+
+function formatPhone(value) {
+  let digits = value.replace(/\D/g, "");
+
+  if (digits.length > 10 && (digits.startsWith("7") || digits.startsWith("8"))) {
+    digits = digits.slice(1);
+  }
+
+  digits = digits.slice(0, 10);
+
+  if (!digits) {
+    return "";
+  }
+
+  let formatted = "+7";
+
+  if (digits.length <= 3) {
+    return `${formatted} (${digits}`;
+  }
+
+  formatted += ` (${digits.slice(0, 3)})`;
+
+  if (digits.length <= 6) {
+    return `${formatted} ${digits.slice(3)}`;
+  }
+
+  formatted += ` ${digits.slice(3, 6)}`;
+
+  if (digits.length <= 8) {
+    return `${formatted}-${digits.slice(6)}`;
+  }
+
+  return `${formatted}-${digits.slice(6, 8)}-${digits.slice(8)}`;
+}
+
+fields.phone.addEventListener("input", () => {
+  fields.phone.value = formatPhone(fields.phone.value);
 });
 
 captchaRefresh.addEventListener("click", () => {
